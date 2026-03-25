@@ -756,13 +756,15 @@ fill: none;
 .next { right: 15px; }
 
 @media (max-width: 768px) {
-.carousel {
-padding: 0 15px;
-}
 
-.slide {
-min-width: 100%;
-}
+  .carousel {
+    padding: 0 15px;
+    gap: 0; /* 🔥 critical */
+  }
+
+  .slide {
+    flex: 0 0 100%;
+  }
 
 .slide-image {
 aspect-ratio: 3 / 3;
