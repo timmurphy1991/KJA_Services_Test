@@ -75,7 +75,7 @@ const prevBtn=document.querySelector('.prev');
 
 if(slider&&slides.length){
 
-let index=0,slideWidth=0,gap=0,autoTimer=null,resumeTimer=null,hasStarted=false,isAnimating=false;
+let index=0,slideWidth=0,gap=0,autoTimer=null,resumeTimer=null,hasStarted=false;
 
 /* WIDTH */
 const setWidth=()=>{
@@ -83,31 +83,25 @@ const s=getComputedStyle(slider);
 gap=parseFloat(s.gap)||0;
 slideWidth=slides[0].getBoundingClientRect().width+gap;
 
-/* HARD RESET (fixes resize bug) */
+/* snap clean */
 slider.style.transition='none';
 slider.style.transform=`translate3d(${-index*slideWidth}px,0,0)`;
+
+/* force reflow */
+slider.offsetHeight;
 };
 
 /* MOVE */
-const moveTo=(i,a=true)=>{
-if(isAnimating)return;
-
+const moveTo=(i)=>{
 index=(i+slides.length)%slides.length;
-isAnimating=true;
 
 const offset=index*slideWidth;
 
-slider.style.transition=a
-?"transform .6s cubic-bezier(.22,.61,.36,1)"
-:"none";
-
+slider.style.transition="transform .6s cubic-bezier(.22,.61,.36,1)";
 slider.style.transform=`translate3d(${-offset}px,0,0)`;
 
 slides.forEach(s=>s.classList.remove('active'));
 slides[index].classList.add('active');
-
-/* unlock after animation */
-setTimeout(()=>{isAnimating=false},600);
 };
 
 /* AUTOPLAY */
@@ -127,7 +121,7 @@ clearTimeout(resumeTimer);
 resumeTimer=setTimeout(startAuto,5000);
 };
 
-/* IN VIEW START */
+/* IN VIEW */
 const checkInView=()=>{
 if(hasStarted)return;
 const r=slider.getBoundingClientRect();
@@ -143,21 +137,15 @@ window.removeEventListener('scroll',checkInView);
 window.addEventListener('scroll',checkInView);
 checkInView();
 
-/* SCROLL LOCK (fixes mid-scroll glitch) */
-window.addEventListener('scroll',()=>{
-slider.style.transition='none';
-slider.style.transform=`translate3d(${-index*slideWidth}px,0,0)`;
-});
-
 /* BUTTONS */
 nextBtn?.addEventListener('click',()=>{moveTo(index+1);pause()});
 prevBtn?.addEventListener('click',()=>{moveTo(index-1);pause()});
 
 /* INIT */
 setWidth();
-moveTo(0,false);
+moveTo(0);
 
-/* RESIZE FIX (debounced) */
+/* RESIZE FIX */
 let resizeTimeout;
 window.addEventListener('resize',()=>{
 clearTimeout(resizeTimeout);
