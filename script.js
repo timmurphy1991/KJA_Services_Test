@@ -73,68 +73,106 @@ window.addEventListener('scroll',onScroll);
 
 /*---CAROUSEL---*/
 
-const slider=document.querySelector('.carousel');
-const slides=document.querySelectorAll('.slide');
-const nextBtn=document.querySelector('.next');
-const prevBtn=document.querySelector('.prev');
+/*---CAROUSEL---*/
 
-if(slider&&slides.length){
+const slider = document.querySelector('.carousel');
+const slides = document.querySelectorAll('.slide');
+const nextBtn = document.querySelector('.next');
+const prevBtn = document.querySelector('.prev');
 
-let index=0,slideWidth=0,gap=0,autoTimer=null,resumeTimer=null,hasStarted=false;
+if (slider && slides.length) {
 
-const setWidth=()=>{
-const s=getComputedStyle(slider);
-gap=parseFloat(s.gap)||0;
-slideWidth=slides[0].getBoundingClientRect().width+gap;
-moveTo(index,false);
+let index = 0,
+    slideWidth = 0,
+    gap = 0,
+    autoTimer = null,
+    resumeTimer = null,
+    hasStarted = false,
+    isAnimating = false;
+
+const setWidth = () => {
+  const s = getComputedStyle(slider);
+  gap = parseFloat(s.gap) || 0;
+
+  // Force clean measurement
+  const rect = slides[0].getBoundingClientRect();
+  slideWidth = Math.round(rect.width + gap);
+
+  moveTo(index, false);
 };
 
-const moveTo=(i,a=true)=>{
-index=(i+slides.length)%slides.length;
-const offset=index*slideWidth;
-slider.style.transition=a?"transform .6s cubic-bezier(.22,.61,.36,1)":"none";
-slider.style.transform=`translate3d(${-offset}px,0,0)`;
-slides.forEach(s=>s.classList.remove('active'));
-slides[index].classList.add('active');
+const moveTo = (i, animate = true) => {
+  if (isAnimating) return; // 🚨 prevent stacking
+  isAnimating = true;
+
+  index = (i + slides.length) % slides.length;
+  const offset = index * slideWidth;
+
+  slider.style.transition = animate ? "transform .6s ease" : "none";
+  slider.style.transform = `translate3d(${-offset}px,0,0)`;
+
+  slides.forEach(s => s.classList.remove('active'));
+  slides[index].classList.add('active');
 };
 
-const startAuto=()=>{
-if(autoTimer)return;
-autoTimer=setInterval(()=>moveTo(index+1),3500);
+// ✅ Wait for transition to fully finish
+slider.addEventListener('transitionend', () => {
+  isAnimating = false;
+});
+
+const startAuto = () => {
+  if (autoTimer) return;
+
+  autoTimer = setInterval(() => {
+    if (!isAnimating) moveTo(index + 1);
+  }, 3200); // slightly longer than transition
 };
 
-const stopAuto=()=>{
-clearInterval(autoTimer);
-autoTimer=null;
+const stopAuto = () => {
+  clearInterval(autoTimer);
+  autoTimer = null;
 };
 
-const pause=()=>{
-stopAuto();
-clearTimeout(resumeTimer);
-resumeTimer=setTimeout(startAuto,5000);
+const pause = () => {
+  stopAuto();
+  clearTimeout(resumeTimer);
+  resumeTimer = setTimeout(startAuto, 6000);
 };
 
-const checkInView=()=>{
-if(hasStarted)return;
-const r=slider.getBoundingClientRect();
-const vh=window.innerHeight;
-if(r.top<vh*.8&&r.bottom>0){
-hasStarted=true;
-startAuto();
-window.removeEventListener('scroll',checkInView);
-}
+const checkInView = () => {
+  if (hasStarted) return;
+
+  const r = slider.getBoundingClientRect();
+  const vh = window.innerHeight;
+
+  if (r.top < vh * 0.8 && r.bottom > 0) {
+    hasStarted = true;
+    startAuto();
+    window.removeEventListener('scroll', checkInView);
+  }
 };
 
-window.addEventListener('scroll',checkInView);
+window.addEventListener('scroll', checkInView);
 checkInView();
 
-nextBtn?.addEventListener('click',()=>{moveTo(index+1);pause()});
-prevBtn?.addEventListener('click',()=>{moveTo(index-1);pause()});
+nextBtn?.addEventListener('click', () => {
+  moveTo(index + 1);
+  pause();
+});
 
-setWidth();
-moveTo(0,false);
-window.addEventListener('resize',setWidth);
+prevBtn?.addEventListener('click', () => {
+  moveTo(index - 1);
+  pause();
+});
+
+// 🚨 IMPORTANT: wait for images before measuring
+window.addEventListener('load', () => {
+  setWidth();
+  moveTo(0, false);
+});
+
+window.addEventListener('resize', () => {
+  setWidth();
+});
 
 }
-
-});
