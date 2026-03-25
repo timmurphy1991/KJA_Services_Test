@@ -1,6 +1,16 @@
 document.addEventListener('DOMContentLoaded', () => {
 
   /* ======================
+     PREVENT MOBILE MENU FLASH (JS SAFETY)
+  ====================== */
+
+  const mobileMenuInit = document.querySelector('.mobile-menu');
+  if (mobileMenuInit) {
+    mobileMenuInit.style.transform = 'translateX(-100%)';
+  }
+
+
+  /* ======================
      INTERSECTION OBSERVER (ALL ANIMATIONS)
   ====================== */
 
@@ -28,14 +38,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 600);
   }
 
+
   /* ======================
-     VIDEO_LOAD
+     VIDEO LOAD
   ====================== */
 
   window.addEventListener('load', () => {
-  const video = document.querySelector('.banner-video-native');
-  if (video) video.load();
-});
+    const video = document.querySelector('.banner-video-native');
+    if (video) video.load();
+  });
 
 
   /* ======================
@@ -123,7 +134,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
   /* ======================
-     CAROUSEL
+     CAROUSEL (BUTTON ONLY)
   ====================== */
 
   const slider = document.querySelector('.carousel');
@@ -131,139 +142,98 @@ document.addEventListener('DOMContentLoaded', () => {
   const nextBtn = document.querySelector('.next');
   const prevBtn = document.querySelector('.prev');
 
-  if (!slider || slides.length === 0) return;
+  if (slider && slides.length > 0) {
 
-  let index = 0;
-  let slideWidth = 0;
-  let gap = 0;
+    let index = 0;
+    let slideWidth = 0;
+    let gap = 0;
 
-  let autoTimer = null;
-  let resumeTimer = null;
+    let autoTimer = null;
+    let resumeTimer = null;
 
-  let hasStarted = false;
-  let isDragging = false;
-  let startX = 0;
-  let prevTranslate = 0;
+    let hasStarted = false;
+    let prevTranslate = 0;
 
-  /* WIDTH */
-  function setWidth() {
-    const style = getComputedStyle(slider);
-    gap = parseFloat(style.gap) || 0;
-    slideWidth = slides[0].getBoundingClientRect().width + gap;
-    moveTo(index, false);
-  }
-
-  /* MOVE */
-  function moveTo(i, animate = true) {
-    index = (i + slides.length) % slides.length;
-
-    const offset = index * slideWidth;
-    prevTranslate = -offset;
-
-    slider.style.transition = animate
-      ? "transform 0.6s cubic-bezier(.22,.61,.36,1)"
-      : "none";
-
-    slider.style.transform = `translate3d(${prevTranslate}px,0,0)`;
-
-    slides.forEach(s => s.classList.remove('active'));
-    slides[index].classList.add('active');
-  }
-
-  /* AUTOPLAY */
-  function startAuto() {
-    if (autoTimer) return;
-
-    autoTimer = setInterval(() => {
-      if (!isDragging) moveTo(index + 1);
-    }, 3500);
-  }
-
-  function stopAuto() {
-    clearInterval(autoTimer);
-    autoTimer = null;
-  }
-
-  function pauseAndResume() {
-    stopAuto();
-    clearTimeout(resumeTimer);
-
-    resumeTimer = setTimeout(startAuto, 5000);
-  }
-
-  /* START WHEN IN VIEW (ONCE) */
-  function checkInView() {
-    if (hasStarted) return;
-
-    const rect = slider.getBoundingClientRect();
-    const windowHeight = window.innerHeight;
-
-    const visible = rect.top < windowHeight * 0.8 && rect.bottom > 0;
-
-    if (visible) {
-      hasStarted = true;
-      startAuto();
-      window.removeEventListener('scroll', checkInView);
+    /* WIDTH */
+    function setWidth() {
+      const style = getComputedStyle(slider);
+      gap = parseFloat(style.gap) || 0;
+      slideWidth = slides[0].getBoundingClientRect().width + gap;
+      moveTo(index, false);
     }
+
+    /* MOVE */
+    function moveTo(i, animate = true) {
+      index = (i + slides.length) % slides.length;
+
+      const offset = index * slideWidth;
+      prevTranslate = -offset;
+
+      slider.style.transition = animate
+        ? "transform 0.6s cubic-bezier(.22,.61,.36,1)"
+        : "none";
+
+      slider.style.transform = `translate3d(${prevTranslate}px,0,0)`;
+
+      slides.forEach(s => s.classList.remove('active'));
+      slides[index].classList.add('active');
+    }
+
+    /* AUTOPLAY */
+    function startAuto() {
+      if (autoTimer) return;
+
+      autoTimer = setInterval(() => {
+        moveTo(index + 1);
+      }, 3500);
+    }
+
+    function stopAuto() {
+      clearInterval(autoTimer);
+      autoTimer = null;
+    }
+
+    function pauseAndResume() {
+      stopAuto();
+      clearTimeout(resumeTimer);
+      resumeTimer = setTimeout(startAuto, 5000);
+    }
+
+    /* START WHEN IN VIEW */
+    function checkInView() {
+      if (hasStarted) return;
+
+      const rect = slider.getBoundingClientRect();
+      const windowHeight = window.innerHeight;
+
+      const visible = rect.top < windowHeight * 0.8 && rect.bottom > 0;
+
+      if (visible) {
+        hasStarted = true;
+        startAuto();
+        window.removeEventListener('scroll', checkInView);
+      }
+    }
+
+    window.addEventListener('scroll', checkInView);
+    checkInView();
+
+    /* BUTTONS */
+    nextBtn?.addEventListener('click', () => {
+      moveTo(index + 1);
+      pauseAndResume();
+    });
+
+    prevBtn?.addEventListener('click', () => {
+      moveTo(index - 1);
+      pauseAndResume();
+    });
+
+    /* INIT */
+    setWidth();
+    moveTo(0, false);
+
+    window.addEventListener('resize', setWidth);
   }
-
-  window.addEventListener('scroll', checkInView);
-  checkInView();
-
-  /* BUTTONS */
-  nextBtn?.addEventListener('click', () => {
-    moveTo(index + 1);
-    pauseAndResume();
-  });
-
-  prevBtn?.addEventListener('click', () => {
-    moveTo(index - 1);
-    pauseAndResume();
-  });
-
-  /* DRAG */
-  function getX(e) {
-    return e.touches ? e.touches[0].clientX : e.clientX;
-  }
-
-  function dragStart(e) {
-    isDragging = true;
-    startX = getX(e);
-    slider.style.transition = "none";
-    stopAuto();
-  }
-
-  function dragMove(e) {
-    if (!isDragging) return;
-    const delta = getX(e) - startX;
-    slider.style.transform = `translate3d(${prevTranslate + delta}px,0,0)`;
-  }
-
-  function dragEnd(e) {
-    if (!isDragging) return;
-
-    isDragging = false;
-    const moved = getX(e) - startX;
-
-    if (moved < -50) moveTo(index + 1);
-    else if (moved > 50) moveTo(index - 1);
-    else moveTo(index);
-
-    pauseAndResume();
-  }
-
-  slider.addEventListener('mousedown', dragStart);
-  window.addEventListener('mousemove', dragMove);
-  window.addEventListener('mouseup', dragEnd);
-
-  slider.addEventListener('touchstart', dragStart, { passive: true });
-  slider.addEventListener('touchmove', dragMove, { passive: true });
-  slider.addEventListener('touchend', dragEnd);
-
-  /* INIT */
-  setWidth();
-  moveTo(0, false);
-
-  window.addEventListener('resize', setWidth);
 
 });
