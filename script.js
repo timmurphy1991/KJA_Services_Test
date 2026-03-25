@@ -73,8 +73,6 @@ window.addEventListener('scroll',onScroll);
 
 /*---CAROUSEL---*/
 
-/*---CAROUSEL---*/
-
 const slider = document.querySelector('.carousel');
 const slides = document.querySelectorAll('.slide');
 const nextBtn = document.querySelector('.next');
@@ -82,50 +80,50 @@ const prevBtn = document.querySelector('.prev');
 
 if (slider && slides.length) {
 
-let index = 0,
-    slideWidth = 0,
-    gap = 0,
-    autoTimer = null,
-    resumeTimer = null,
-    hasStarted = false,
-    isAnimating = false;
+let index = 0;
+let slideWidth = 0;
+let gap = 0;
+let autoTimer = null;
+let isAnimating = false;
+let hasStarted = false;
 
+/* --- MEASURE WIDTH (iOS-safe) --- */
 const setWidth = () => {
-  const s = getComputedStyle(slider);
-  gap = parseFloat(s.gap) || 0;
+  const styles = getComputedStyle(slider);
+  gap = parseFloat(styles.gap) || 0;
 
-  // Force clean measurement
   const rect = slides[0].getBoundingClientRect();
   slideWidth = Math.round(rect.width + gap);
-
-  moveTo(index, false);
 };
 
+/* --- MOVE SLIDE --- */
 const moveTo = (i, animate = true) => {
-  if (isAnimating) return; // 🚨 prevent stacking
-  isAnimating = true;
+  if (isAnimating && animate) return;
 
   index = (i + slides.length) % slides.length;
   const offset = index * slideWidth;
 
-  slider.style.transition = animate ? "transform .6s ease" : "none";
+  isAnimating = animate;
+
+  slider.style.transition = animate ? "transform 0.6s ease" : "none";
   slider.style.transform = `translate3d(${-offset}px,0,0)`;
 
   slides.forEach(s => s.classList.remove('active'));
   slides[index].classList.add('active');
 };
 
-// ✅ Wait for transition to fully finish
+/* --- UNLOCK AFTER TRANSITION --- */
 slider.addEventListener('transitionend', () => {
   isAnimating = false;
 });
 
+/* --- AUTO PLAY (no drift) --- */
 const startAuto = () => {
   if (autoTimer) return;
 
   autoTimer = setInterval(() => {
     if (!isAnimating) moveTo(index + 1);
-  }, 3200); // slightly longer than transition
+  }, 3200);
 };
 
 const stopAuto = () => {
@@ -133,46 +131,59 @@ const stopAuto = () => {
   autoTimer = null;
 };
 
-const pause = () => {
-  stopAuto();
-  clearTimeout(resumeTimer);
-  resumeTimer = setTimeout(startAuto, 6000);
-};
+/* --- INTERSECTION OBSERVER (KEY FIX) --- */
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
 
-const checkInView = () => {
-  if (hasStarted) return;
+      // 🔥 ALWAYS re-sync on re-entry (fixes iOS issue)
+      setWidth();
+      moveTo(index, false);
 
-  const r = slider.getBoundingClientRect();
-  const vh = window.innerHeight;
+      if (!hasStarted) {
+        hasStarted = true;
+        startAuto();
+      }
+    } else {
+      // Optional: pause when off-screen (saves performance)
+      stopAuto();
+    }
+  });
+}, { threshold: 0.3 });
 
-  if (r.top < vh * 0.8 && r.bottom > 0) {
-    hasStarted = true;
-    startAuto();
-    window.removeEventListener('scroll', checkInView);
-  }
-};
+observer.observe(slider);
 
-window.addEventListener('scroll', checkInView);
-checkInView();
-
+/* --- BUTTONS --- */
 nextBtn?.addEventListener('click', () => {
   moveTo(index + 1);
-  pause();
+  stopAuto();
+  startAuto();
 });
 
 prevBtn?.addEventListener('click', () => {
   moveTo(index - 1);
-  pause();
+  stopAuto();
+  startAuto();
 });
 
-// 🚨 IMPORTANT: wait for images before measuring
+/* --- INITIAL LOAD (wait for layout stability) --- */
 window.addEventListener('load', () => {
   setWidth();
   moveTo(0, false);
 });
 
+/* --- iOS ORIENTATION FIX --- */
+window.addEventListener('orientationchange', () => {
+  setTimeout(() => {
+    setWidth();
+    moveTo(index, false);
+  }, 300);
+});
+
+/* --- RESIZE --- */
 window.addEventListener('resize', () => {
   setWidth();
+  moveTo(index, false);
 });
 
 }
