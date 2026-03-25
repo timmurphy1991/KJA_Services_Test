@@ -248,12 +248,21 @@ padding: 3rem;
 display: flex;
 flex-direction: column;
 gap: 3rem;
+
+/* FIX */
 transform: translateX(-100%);
-transition: .6s ease;
+opacity: 0;
+visibility: hidden;
+
+transition: transform .6s ease, opacity .3s ease, visibility 0s linear .3s;
 }
 
 .mobile-menu.active {
 transform: translateX(0);
+opacity: 1;
+visibility: visible;
+
+transition: transform .6s ease, opacity .3s ease;
 }
 
 body.menu-open {
