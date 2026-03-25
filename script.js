@@ -1,12 +1,10 @@
 document.addEventListener('DOMContentLoaded',()=>{
 
 /*---INTERSECTION_OBSERVER---*/
-
 const observer=new IntersectionObserver(e=>{e.forEach(t=>{if(t.isIntersecting){t.target.classList.add('visible');observer.unobserve(t.target)}})},{threshold:.3});
 document.querySelectorAll('.slide-in,.fade-in,.banner-overlay').forEach(e=>observer.observe(e));
 
 /*---BANNER_VIDEO---*/
-
 const bannerVideo=document.querySelector('.banner-video');
 const video=document.querySelector('.banner-video-native');
 if(video&&bannerVideo){
@@ -15,7 +13,6 @@ window.addEventListener('load',()=>video.load());
 }
 
 /*---MOBILE_MENU---*/
-
 const toggle=document.querySelector('.menu-toggle');
 const mobileMenu=document.querySelector('.mobile-menu');
 const mobileDropdowns=document.querySelectorAll('.mobile-dropdown');
@@ -47,7 +44,6 @@ d.classList.toggle('active');
 window.addEventListener('resize',()=>{if(window.innerWidth>1024)closeMobileMenu()});
 
 /*---HEADER_SCROLL---*/
-
 const header=document.querySelector('.site-header');
 const banner=document.querySelector('.banner');
 
@@ -72,7 +68,6 @@ updateHeader();
 window.addEventListener('scroll',onScroll);
 
 /*---CAROUSEL---*/
-
 const slider=document.querySelector('.carousel');
 const slides=document.querySelectorAll('.slide');
 const nextBtn=document.querySelector('.next');
@@ -80,24 +75,42 @@ const prevBtn=document.querySelector('.prev');
 
 if(slider&&slides.length){
 
-let index=0,slideWidth=0,gap=0,autoTimer=null,resumeTimer=null,hasStarted=false;
+let index=0,slideWidth=0,gap=0,autoTimer=null,resumeTimer=null,hasStarted=false,isAnimating=false;
 
+/* WIDTH */
 const setWidth=()=>{
 const s=getComputedStyle(slider);
 gap=parseFloat(s.gap)||0;
 slideWidth=slides[0].getBoundingClientRect().width+gap;
-moveTo(index,false);
+
+/* HARD RESET (fixes resize bug) */
+slider.style.transition='none';
+slider.style.transform=`translate3d(${-index*slideWidth}px,0,0)`;
 };
 
+/* MOVE */
 const moveTo=(i,a=true)=>{
+if(isAnimating)return;
+
 index=(i+slides.length)%slides.length;
+isAnimating=true;
+
 const offset=index*slideWidth;
-slider.style.transition=a?"transform .6s cubic-bezier(.22,.61,.36,1)":"none";
+
+slider.style.transition=a
+?"transform .6s cubic-bezier(.22,.61,.36,1)"
+:"none";
+
 slider.style.transform=`translate3d(${-offset}px,0,0)`;
+
 slides.forEach(s=>s.classList.remove('active'));
 slides[index].classList.add('active');
+
+/* unlock after animation */
+setTimeout(()=>{isAnimating=false},600);
 };
 
+/* AUTOPLAY */
 const startAuto=()=>{
 if(autoTimer)return;
 autoTimer=setInterval(()=>moveTo(index+1),3500);
@@ -114,10 +127,12 @@ clearTimeout(resumeTimer);
 resumeTimer=setTimeout(startAuto,5000);
 };
 
+/* IN VIEW START */
 const checkInView=()=>{
 if(hasStarted)return;
 const r=slider.getBoundingClientRect();
 const vh=window.innerHeight;
+
 if(r.top<vh*.8&&r.bottom>0){
 hasStarted=true;
 startAuto();
@@ -128,12 +143,26 @@ window.removeEventListener('scroll',checkInView);
 window.addEventListener('scroll',checkInView);
 checkInView();
 
+/* SCROLL LOCK (fixes mid-scroll glitch) */
+window.addEventListener('scroll',()=>{
+slider.style.transition='none';
+slider.style.transform=`translate3d(${-index*slideWidth}px,0,0)`;
+});
+
+/* BUTTONS */
 nextBtn?.addEventListener('click',()=>{moveTo(index+1);pause()});
 prevBtn?.addEventListener('click',()=>{moveTo(index-1);pause()});
 
+/* INIT */
 setWidth();
 moveTo(0,false);
-window.addEventListener('resize',setWidth);
+
+/* RESIZE FIX (debounced) */
+let resizeTimeout;
+window.addEventListener('resize',()=>{
+clearTimeout(resizeTimeout);
+resizeTimeout=setTimeout(()=>{setWidth()},150);
+});
 
 }
 
