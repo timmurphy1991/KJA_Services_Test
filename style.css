@@ -117,6 +117,28 @@ transition: opacity .3s ease;
 opacity: 1;
 }
 
+/* Desktop hover only */
+@media (hover: hover) {
+  .logo:hover .logo-hover {
+    opacity: 1;
+  }
+
+  .logo:hover .logo-light {
+    opacity: 1;
+  }
+}
+
+/* Mobile (no hover devices) → always show hover state */
+@media (hover: none) {
+  .logo-hover {
+    opacity: 1;
+  }
+
+  .logo-light {
+    opacity: 1;
+  }
+}
+
 .nav-bottom {
 border-top: 1px solid rgba(0,0,0,.1);
 }
